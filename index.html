@@ -371,7 +371,7 @@
             // 如果是本地文件路径，则提示用户需要部署到服务器
             if (currentURL.startsWith('file://')) {
                 // 对于本地文件，生成一个提示信息
-                currentURL = 'adnnet.github.io/index.html'; // 默认提示链接
+                currentURL = 'https://adnnet.github.io/Internal_Control_Questions/'; // 默认提示链接
                 document.getElementById('qr-code-img').alt = "请将此页面部署到Web服务器以生成有效二维码";
                 document.getElementById('deploy-note').style.display = 'block';
             }
@@ -896,3 +896,4 @@
     </script>
 </body>
 </html>
+
