@@ -347,6 +347,14 @@
                 </div>
             </div>
             
+            <div class="question-list">
+                <h3>用户建议</h3>
+                <div id="suggestions-list">
+                    <!-- 建议列表将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            
+            <button class="btn" onclick="exportSuggestions()">导出所有建议</button>
             <button class="btn" onclick="showAdminMainScreen()">返回管理员主界面</button>
         </div>
     </div>
@@ -730,6 +738,9 @@
                 return;
             }
             
+            // 保存建议到localStorage
+            saveSurveySuggestion(surveyText);
+            
             // 显示结果页面
             showScreen('result-screen');
             
@@ -739,6 +750,40 @@
                 resultMessage.textContent = '恭喜你回答100%正确，可以选择你喜欢的奖品咯~';
             } else {
                 resultMessage.textContent = `您答对了${gameState.score}题，感谢参与！`;
+            }
+        }
+        
+        // 保存建议到localStorage
+        function saveSurveySuggestion(suggestion) {
+            // 获取当前时间
+            const now = new Date();
+            const timestamp = now.toLocaleString();
+            
+            // 创建建议对象
+            const suggestionObj = {
+                text: suggestion,
+                timestamp: timestamp
+            };
+            
+            // 从localStorage获取现有的建议
+            let suggestions = [];
+            const savedSuggestions = localStorage.getItem('quizSuggestions');
+            if (savedSuggestions) {
+                try {
+                    suggestions = JSON.parse(savedSuggestions);
+                } catch (e) {
+                    console.error('解析历史建议时出错:', e);
+                }
+            }
+            
+            // 添加新建议
+            suggestions.push(suggestionObj);
+            
+            // 保存到localStorage
+            try {
+                localStorage.setItem('quizSuggestions', JSON.stringify(suggestions));
+            } catch (e) {
+                console.error('保存建议时出错:', e);
             }
         }
         
@@ -773,6 +818,95 @@
             showScreen('admin-screen');
             updateAnswerInputs();
             updateQuestionsList();
+            updateSuggestionsList();
+        }
+        
+        // 更新建议列表
+        function updateSuggestionsList() {
+            const suggestionsList = document.getElementById('suggestions-list');
+            suggestionsList.innerHTML = '';
+            
+            // 从localStorage获取建议
+            let suggestions = [];
+            const savedSuggestions = localStorage.getItem('quizSuggestions');
+            if (savedSuggestions) {
+                try {
+                    suggestions = JSON.parse(savedSuggestions);
+                } catch (e) {
+                    console.error('解析建议时出错:', e);
+                    suggestionsList.innerHTML = '<p>加载建议时出错</p>';
+                    return;
+                }
+            }
+            
+            if (suggestions.length === 0) {
+                suggestionsList.innerHTML = '<p>暂无用户建议</p>';
+                return;
+            }
+            
+            // 反向排序，最新的建议显示在前面
+            suggestions.reverse();
+            
+            // 显示建议
+            suggestions.forEach((suggestion, index) => {
+                const suggestionDiv = document.createElement('div');
+                suggestionDiv.className = 'question-item';
+                suggestionDiv.innerHTML = `
+                    <div><strong>建议 ${suggestions.length - index}:</strong> ${suggestion.text}</div>
+                    <div class="question-type">时间: ${suggestion.timestamp}</div>
+                `;
+                suggestionsList.appendChild(suggestionDiv);
+            });
+        }
+        
+        // 导出建议为CSV文件
+        function exportSuggestions() {
+            // 从localStorage获取建议
+            let suggestions = [];
+            const savedSuggestions = localStorage.getItem('quizSuggestions');
+            if (savedSuggestions) {
+                try {
+                    suggestions = JSON.parse(savedSuggestions);
+                } catch (e) {
+                    console.error('解析建议时出错:', e);
+                    alert('导出建议时出错，请查看控制台');
+                    return;
+                }
+            }
+            
+            if (suggestions.length === 0) {
+                alert('暂无用户建议可导出');
+                return;
+            }
+            
+            // 构建CSV内容
+            let csvContent = '\uFEFF"序号","建议内容","提交时间"\n'; // 添加BOM以支持中文
+            
+            suggestions.forEach((suggestion, index) => {
+                // 转义引号并包裹字段
+                const escapedText = suggestion.text.replace(/"/g, '""');
+                const escapedTimestamp = suggestion.timestamp.replace(/"/g, '""');
+                
+                csvContent += `"${index + 1}","${escapedText}","${escapedTimestamp}"\n`;
+            });
+            
+            // 创建下载链接
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            
+            // 设置文件名
+            const now = new Date();
+            const filename = `用户建议_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}.csv`;
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            
+            // 触发下载
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
         
         // 显示开始页面
